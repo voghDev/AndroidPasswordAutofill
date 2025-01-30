@@ -1,3 +1,4 @@
 <resources>
-    <string name="app_name">My Application</string>
+    <string name="app_name">Android Password Autofill</string>
+    <string name="autofill_service_name">Password Autofill Service</string>
 </resources>
