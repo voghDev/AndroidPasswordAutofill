@@ -31,3 +31,8 @@ google-services.json
 
 # Android Profiling
 *.hprof
+
+# Aider AI - Claude Sonnet 3.5
+.aider*
+anthropic*
+api-key
