@@ -2,6 +2,11 @@ package es.voghdev.androidpasswordautofill
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.credentials.CreateCredentialResponse
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.GetCredentialResponse
+import androidx.credentials.GetPassword
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Column
@@ -23,6 +28,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.credentials.CreatePasswordRequest
+import androidx.credentials.PasswordCredential
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
@@ -30,7 +39,10 @@ import androidx.compose.ui.unit.dp
 import es.voghdev.androidpasswordautofill.ui.theme.MyApplicationTheme
 
 class MainActivity : ComponentActivity() {
+    private lateinit var credentialManager: CredentialManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        credentialManager = CredentialManager.create(this)
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
@@ -51,10 +63,65 @@ class MainActivity : ComponentActivity() {
                             password = it
                         }
                         SubmitButton(username, password) {
+                            // Save credentials after successful login
+                            saveCredentials(username, password)
+                        }
 
+                        Button(
+                            onClick = { getCredentials { u, p -> 
+                                username = u
+                                password = p
+                            } },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp)
+                        ) {
+                            Text("Use saved credentials")
                         }
                     }
                 }
+            }
+        }
+    }
+
+    private fun saveCredentials(username: String, password: String) {
+        lifecycleScope.launch {
+            try {
+                credentialManager.createCredential(
+                    request = CreateCredentialRequest(
+                        CreatePasswordRequest(
+                            id = username,
+                            password = password
+                        )
+                    )
+                )
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    private fun getCredentials(onCredentialsReceived: (String, String) -> Unit) {
+        lifecycleScope.launch {
+            try {
+                val result = credentialManager.getCredential(
+                    request = GetCredentialRequest(
+                        listOf(
+                            GetPassword()
+                        )
+                    )
+                )
+                
+                when (result) {
+                    is GetCredentialResponse -> {
+                        val credential = result.credential
+                        if (credential is PasswordCredential) {
+                            onCredentialsReceived(credential.id, credential.password)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }
